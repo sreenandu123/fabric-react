@@ -52,11 +52,11 @@ const getDistance = (cord1, cord2) => {
 
 //y = mx+ c;
 const getCentroid = (object, activeObject) => {
-  let a1 = Number(getSlope(object.lineCoords.tl, object.lineCoords.bl).toFixed(2));
-  let slopeObject2 = Number(getSlope(activeObject.lineCoords.tl, activeObject.lineCoords.bl).toFixed(2));
+  let a1 = Number(getSlope(object.aCoords.tl, object.aCoords.bl).toFixed(2));
+  let slopeObject2 = Number(getSlope(activeObject.aCoords.tl, activeObject.aCoords.bl).toFixed(2));
   if(a1 === slopeObject2){
-    let c1 = Number((object.lineCoords.tl.y - (a1*object.lineCoords.tl.x)).toFixed(2));
-    let c2 = Number((activeObject.lineCoords.tl.y - (a1*activeObject.lineCoords.tl.x)).toFixed(2));
+    let c1 = Number((object.aCoords.tl.y - (a1*object.aCoords.tl.x)).toFixed(2));
+    let c2 = Number((activeObject.aCoords.tl.y - (a1*activeObject.aCoords.tl.x)).toFixed(2));
     let distance = Math.abs(c2-c1)/Math.sqrt(1 + a1*a1);
     if(distance<20){
 

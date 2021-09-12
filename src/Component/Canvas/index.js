@@ -27,6 +27,7 @@ const Canvas = (props) => {
   }, []);
 
   const handleSnapping = (options) => {
+    options.target.setCoords();
       snapToFixture(canvasLayer, options);
   }
 

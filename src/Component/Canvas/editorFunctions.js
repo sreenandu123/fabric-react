@@ -3,7 +3,7 @@ import { fabric } from "fabric";
 const createCanvas = (id) => {
   return new fabric.Canvas(id, {
     height: 600,
-    width: 1000,
+    width: 0.5 * window.innerWidth,
     backgroundColor: "white",
     imageSmoothingEnabled: true,
     fireRightClick: true,
@@ -17,7 +17,7 @@ const createRect = (canvas, obj) => {
     fill: "red",
     width: 100,
     height: 200,
-    angle: 10,
+    angle: 70,
     selectable: false,
     lockScalingX: true,
     lockScalingY: true,
@@ -43,49 +43,105 @@ function handleZoom(options, canvas) {
 }
 
 const getSlope = (cord1, cord2) => {
-  return (cord2.y-cord1.y)/(cord2.x-cord1.x);
-}
+  return (cord2.y - cord1.y) / (cord2.x - cord1.x);
+};
 
 const getDistance = (cord1, cord2) => {
-  return Number(Math.sqrt(Math.pow(Number(cord2.x) - Number(cord1.x), 2) +Math.pow(Number(cord2.y) - Number(cord1.y), 2)).toFixed(2))
-}
+  return Number(
+    Math.sqrt(
+      Math.pow(Number(cord2.x) - Number(cord1.x), 2) +
+        Math.pow(Number(cord2.y) - Number(cord1.y), 2)
+    ).toFixed(2)
+  );
+};
 
 //y = mx+ c;
+const edges = [
+  ["tl", "bl"],
+  ["bl", "br"],
+  ["br", "tr"],
+  ["tr", "tl"],
+];
+
+const getDistanceBetweenParallelLines = (edge, object, activeObject) => {
+  let slopeOfObject = Number(
+    getSlope(object.aCoords[edge[0]], object.aCoords[edge[1]]).toFixed(2)
+  );
+  let slopeOfActiveObj = Number(
+    getSlope(
+      activeObject.aCoords[edge[0]],
+      activeObject.aCoords[edge[1]]
+    ).toFixed(2)
+  );
+  let distance = 0,
+    c1 = 0,
+    c2 = 0;
+  if (slopeOfObject === slopeOfActiveObj) {
+    c1 = Number(
+      (
+        object.aCoords[edge[0]].y -
+        slopeOfObject * object.aCoords[edge[0]].x
+      ).toFixed(2)
+    );
+    c2 = Number(
+      (
+        activeObject.aCoords[edge[0]].y -
+        slopeOfObject * activeObject.aCoords[edge[0]].x
+      ).toFixed(2)
+    );
+    distance = Math.abs(c2 - c1) / Math.sqrt(1 + slopeOfObject * slopeOfObject);
+  }
+  return { distance, slopeOfObject, c1, c2 };
+};
 const getCentroid = (object, activeObject) => {
-  let a1 = Number(getSlope(object.aCoords.tl, object.aCoords.bl).toFixed(2));
-  let slopeObject2 = Number(getSlope(activeObject.aCoords.tl, activeObject.aCoords.bl).toFixed(2));
-  if(a1 === slopeObject2){
-    let c1 = Number((object.aCoords.tl.y - (a1*object.aCoords.tl.x)).toFixed(2));
-    let c2 = Number((activeObject.aCoords.tl.y - (a1*activeObject.aCoords.tl.x)).toFixed(2));
-    let distance = Math.abs(c2-c1)/Math.sqrt(1 + a1*a1);
-    if(distance<20){
-
-      let [x1, y1] = [activeObject.getCenterPoint().x, activeObject.getCenterPoint().y];
-      let perpendSlope = Number((-1/a1).toFixed(2));
-      let c = Number((y1 - (perpendSlope*x1)).toFixed(2));
-
-      let xIntersect = (c1 - c)/(perpendSlope - a1);
-      let yintersect = (c1*perpendSlope - c*a1)/(perpendSlope - a1)
-  
-      let lineToCentroidDistance = getDistance({x: x1, y: y1}, {x: xIntersect, y: yintersect});
-      let distanceRatio = distance/lineToCentroidDistance;
-      let newCentroidX = (1-distanceRatio)*x1 + distanceRatio*xIntersect;
-      let newCentroidY = (1-distanceRatio)*y1 + distanceRatio*yintersect;
-  
-      return {x: newCentroidX, y: newCentroidY}
+  let edgesDistancesObj = edges.map((item) =>
+    getDistanceBetweenParallelLines(item, object, activeObject)
+  );
+  let maxDistindex = 0,
+    maxDist = edgesDistancesObj[0].distance;
+  edgesDistancesObj.forEach((item, index) => {
+    if (maxDist > item.distance) {
+      maxDist = item.distance;
+      maxDistindex = index;
     }
+  });
+  if (
+    edgesDistancesObj[maxDistindex].distance < 20 &&
+    edgesDistancesObj[maxDistindex].distance !== 0
+  ) {
+    let { slopeOfObject, c1, distance } = edgesDistancesObj[maxDistindex];
+    let [x1, y1] = [
+      activeObject.getCenterPoint().x,
+      activeObject.getCenterPoint().y,
+    ];
+    let perpendSlope = Number((-1 / slopeOfObject).toFixed(2));
+    let c = Number((y1 - perpendSlope * x1).toFixed(2));
+
+    let xIntersect = (c1 - c) / (perpendSlope - slopeOfObject);
+    let yintersect =
+      (c1 * perpendSlope - c * slopeOfObject) / (perpendSlope - slopeOfObject);
+
+    let lineToCentroidDistance = getDistance(
+      { x: x1, y: y1 },
+      { x: xIntersect, y: yintersect }
+    );
+    let distanceRatio = distance / lineToCentroidDistance;
+    let newCentroidX = (1 - distanceRatio) * x1 + distanceRatio * xIntersect;
+    let newCentroidY = (1 - distanceRatio) * y1 + distanceRatio * yintersect;
+
+    return { x: newCentroidX, y: newCentroidY };
   }
   return null;
-}
+};
 
 const snapToFixture = (canvas, options) => {
   canvas.forEachObject((object) => {
     if (object === options.target) return;
     if (options.target.intersectsWithObject(object)) {
       options.target.set("angle", object.angle);
-      
+
       let centroid = getCentroid(object, options.target);
-      if(centroid){
+      if (centroid) {
         options.target.setPositionByOrigin(centroid);
       }
     }

@@ -4,6 +4,17 @@ import { createCanvas, createRect, handleZoom, snapToFixture } from "./editorFun
 const Canvas = (props) => {
   const [canvasLayer, setCanvasLayer] = useState();
 
+  const updateWindowDimensions = () => {
+    if(canvasLayer){
+      canvasLayer.setWidth(0.5* window.innerWidth);
+    }
+  }
+  useEffect(() => {
+    if(canvasLayer){
+      window.addEventListener("resize", updateWindowDimensions);
+    }
+  }, [canvasLayer])
+
   useEffect(() => {
     if (canvasLayer) {
       createRect(canvasLayer);
